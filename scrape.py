@@ -20,7 +20,8 @@ class ScrapeSR():
             print('\n\nSCRAPER ONLY CAPEABLE OF BASEBALL AT THE MOMENT.')
 
     ''' ----------------------------------- Scraping Functions --------------------------------------- '''
-    def find_link(self, html, link_text):
+    def find_link(self, url, link_text):
+        html = BeautifulSoup(requests.get(url).text, features = 'lxml')
         a_tags = html.find_all('a', href = True)
         return [link['href'] for link in a_tags if link.text == link_text][0]
 
@@ -59,11 +60,9 @@ class ScrapeSR():
         elif self.level.lower() == 'mlb':
             default_url = 'https://baseball-reference.com'
 
-            html = BeautifulSoup(requests.get('https://www.baseball-reference.com/leagues/'))
-
             # find year links for each team
-            yr_link1 = default_url + self.find_link(html, self.team1yr)
-            yr_link2 = default_url + self.find_link(html, self.team2yr)
+            yr_link1 = default_url + self.find_link('https://www.baseball-reference.com/leagues/', self.team1yr)
+            yr_link2 = default_url + self.find_link('https://www.baseball-reference.com/leagues/', self.team2yr)
 
             # find team links for each team
             team1_link = default_url + self.find_link(yr_link1, self.team1)
@@ -74,3 +73,4 @@ class ScrapeSR():
             hit2, pit2, hit_cols1, pit_cols1 = self.find_baseball_data(team2_link)
 
         return hit1, pit1, hit2, pit2, hit_cols, pit_cols
+
