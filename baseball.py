@@ -106,17 +106,17 @@ class Team():
         self.scrap = scrap
         self.hitters, self.pitchers = self.generate_players()
 
-        self.lineup = [hitter for hitter in self.hitters][:10]
-        self.rotation = [pitcher for pitcher in self.pitchers][:6]
+        self.lineup = [hitter for hitter in self.hitters]
+        self.rotation = [pitcher for pitcher in self.pitchers]
         
     def generate_players(self):
         # rn this is the issue we need to focus on
 
-        hit_names = self.hit_prob['Name'].unique()[:-2]
-        hit_names = [name for name in hit_names if name != 'None' and 'total' not in name.lower()]
+        hit_names = self.hit_prob['Name'].unique()
+        hit_names = [name for name in hit_names if name != 'None' and 'totals' not in name.lower() and 'Rank' not in name]
 
-        pit_names = self.pit_prob['Name'].unique()[:-2]
-        pit_names = [name for name in pit_names if name != 'None' and 'total' not in name.lower()]
+        pit_names = self.pit_prob['Name'].unique()
+        pit_names = [name for name in pit_names if name != 'None' and 'totals' not in name.lower() and 'Rank' not in name]
 
         # try it again the old way before doing names
         hitters = [Player(self.hit_prob[self.hit_prob['Name'] == name], self.scrap, hitter = True) for name in hit_names]
