@@ -1,19 +1,30 @@
 from scrape import ScrapeSR
+import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
 import random
 
 class Player():
 
-    def __init__(self, df_row, hitter):
-        self.df = df_row
+    def __init__(self, df_row, scrap, hitter):
         self.hitter = hitter
-        print(self.df)
 
-        self.df = self.df.apply(pd.to_numeric, errors = 'coerce').combine_first(self.df)
+        ''' 
+        rn its pretty much working we just need a way to make sure that 
+        it is only working on actual players and not total columns or league
+        columns.
+        '''
 
-        if hitter == True:
+        if self.hitter == True:
+            self.df = pd.DataFrame(df_row, columns = scrap.hit_cols)
+            self.df = self.df.apply(pd.to_numeric, errors = 'coerce').combine_first(self.df)
+            print(self.df)
             self.hitter_probs()
+
         elif self.hitter == False:
+            self.df = pd.DataFrame(df_row, columns = scrap.pit_cols)
+            self.df = self.df.apply(pd.to_numeric, errors = 'coerce').combine_first(self.df)
+            print(self.df)
             self.pitcher_probs()
 
         # keep track of stats over simulation
@@ -53,31 +64,33 @@ class Player():
                 
     def pitcher_probs(self):
         # probabilities on a PA basis
-        self.K = self.df['SO'] / self.df['BF']
-        self.BB = self.df['BB'] / self.df['BF'] + self.K
-        self.H = self.df['H'] / self.df['BF'] + self.BB
-        self.HBP = self.df['HBP'] / self.df['BF'] + self.H
-        self.IPO = 1 - (self.K + self.BB + self.H + self.HBP)
-
-    def hitter_probs(self):
-        # add single column (p is for probabillity)
-        if self.df['PA'] > 0 and self.df['H'] > 0:
-            self.df['1B'] = self.df['H'] - self.df['2B'] - self.df['3B'] - self.df['HR']
-
-            # probabilities on a PA basis, check at some point if it adds up to 1
-            self.Kp = self.df['SO'] / self.df['PA']
-            self.BBp = self.df['BB'] / self.df['PA'] + self.Kp
-            self.Hp = self.df['H'] / self.df['PA'] + self.Kp + self.BBp
-            self.HBPp = self.df['HBP'] / self.df['PA'] + self.Kp + self.BBp + self.Hp
+        # need an if statement of some kind to make sure we are only doing this for real pitchers and hitters
+            self.Kp = self.df['SO'] / self.df['BF']
+            self.BBp = self.df['BB'] / self.df['BF'] + self.Kp
+            self.Hp = self.df['H'] / self.df['BF'] + self.BBp + self.Kp
+            self.HBPp = self.df['HBP'] / self.df['BF'] + self.Hp + self.BBp + self.Kp
             self.IPOp = 1 - (self.Kp + self.BBp + self.Hp + self.HBPp)
 
-            # if they get a hit, these are the probabilities of how many bases they get
-            self.singlep = self.df['1B'] / self.df['H']
-            self.doublep = self.df['2B'] / self.df['H'] + self.singlep
-            self.triplep = self.df['3B'] / self.df['H'] + self.singlep + self.doublep
-            self.HRp = self.df['HR'] / self.df['H'] + self.singlep + self.doublep + self.triplep
+    def hitter_probs(self):
+                ''' think we have to approach these probs in a different way '''
+        # add single column (p is for probabillity)
+                self.df['1B'] = self.df['H'] - self.df['2B'] - self.df['3B'] - self.df['HR']
 
-        ''' SB is giving me problems with string values somehow '''
+                # probabilities on a PA basis, check at some point if it adds up to 1
+                self.Kp = self.df['SO'] / self.df['PA']
+                self.BBp = self.df['BB'] / self.df['PA'] + self.Kp
+                self.Hp = self.df['H'] / self.df['PA'] + self.Kp + self.BBp
+                self.HBPp = self.df['HBP'] / self.df['PA'] + self.Kp + self.BBp + self.Hp
+                self.IPOp = 1 - (self.Kp + self.BBp + self.Hp + self.HBPp)
+
+                # if they get a hit, these are the probabilities of how many bases they get
+                self.singlep = self.df['1B'] / self.df['H']
+                self.doublep = self.df['2B'] / self.df['H'] + self.singlep
+                self.triplep = self.df['3B'] / self.df['H'] + self.singlep + self.doublep
+                self.HRp = self.df['HR'] / self.df['H'] + self.singlep + self.doublep + self.triplep
+
+
+                ''' SB is giving me problems with string values somehow '''
         # # in this sim we are only going to go with simulating SB from 1b
         # if self.df['SB'] > 0 and self.df['1B'] > 0 and self.df['CS'] > 0:
         #     self.ATTSBp =  self.df['SB'] + self.df['CS'] / self.df['1B']
@@ -87,19 +100,29 @@ class Player():
 
 class Team():
 
-    def __init__(self, hit_df, pit_df):
+    def __init__(self, hit_df, pit_df, scrap):
         self.hit_prob = hit_df
         self.pit_prob = pit_df
+        self.scrap = scrap
         self.hitters, self.pitchers = self.generate_players()
 
         self.lineup = [hitter for hitter in self.hitters][:10]
         self.rotation = [pitcher for pitcher in self.pitchers][:6]
         
     def generate_players(self):
-        hitters = [Player(self.hit_prob.iloc[i], hitter = True) for i in range(len(self.hit_prob))]
-        pitchers = [Player(self.pit_prob.iloc[i], hitter = False) for i in range(len(self.pit_prob))]
-        return hitters, pitchers
+        # rn this is the issue we need to focus on
 
+        hit_names = self.hit_prob['Name'].unique()[:-2]
+        hit_names = [name for name in hit_names if name != 'None' and 'total' not in name.lower()]
+
+        pit_names = self.pit_prob['Name'].unique()[:-2]
+        pit_names = [name for name in pit_names if name != 'None' and 'total' not in name.lower()]
+
+        # try it again the old way before doing names
+        hitters = [Player(self.hit_prob[self.hit_prob['Name'] == name], self.scrap, hitter = True) for name in hit_names]
+        pitchers = [Player(self.pit_prob[self.pit_prob['Name'] == name], self.scrap, hitter = False) for name in pit_names]
+
+        return hitters, pitchers
 
 
 class Baseball():
@@ -107,15 +130,18 @@ class Baseball():
     def __init__(self, level = 'MLB'):
 
         self.TEAM1 = input('\nENTER TEAM 1 (ex: 1899 Cincinnati Reds): ').title().strip()
-        self.TEAM2 = input('ENTER TEAM 2 (ex: 2015 Kansas City Royals): ').title().strip()
+        self.TEAM2 = input('ENTER TEAM 2 (ex: 1927 New York Yankees): ').title().strip()
 
         self.level = level
         scraper = ScrapeSR('Baseball', self.TEAM1, self.TEAM2, self.level)
 
-        self.team1hit, self.team2hit = scraper.hit1, scraper.hit2
-        self.team1pit, self.team2pit = scraper.pit1, scraper.pit2
+        self.team1hit = scraper.hit1
+        self.team2hit = scraper.hit2
+        self.team1pit = scraper.pit1
+        self.team2pit = scraper.pit2
 
-        Team1, Team2 = Team(self.team1hit, self.team1hit), Team(self.team2hit, self.team2hit)
+        Team1 = Team(self.team1hit, self.team1pit, scraper)
+        Team2 = Team(self.team2hit, self.team2pit, scraper)
 
         self.num_sims = int(input('\nENTER NUMBER OF SIMULATIONS: '))
 
@@ -131,10 +157,8 @@ class Baseball():
         num = random.random()
         # check if the num is between the least probable outcome and 0
         outcomes = ['K', 'BB', 'H', 'IPO', 'HBP']
-        lst = zip([hitter.Kp + pitcher.Kp, hitter.BBp + pitcher.BBp,hitter.Hp + pitcher.Hp, hitter.IPOp + pitcher.IPOp, hitter.HBPp + pitcher.HBPp], outcomes) # hopefully this adds up to 2?
+        print(hitter.Kp + pitcher.Kp)
         # sort it by least probable to most probable
-        lst.sort()
-        print(lst)
         return
 
     def half_inning(self, pitching_team, hitting_team):
@@ -148,4 +172,7 @@ class Baseball():
 
             outs += 1
 
+        return
+
+    def summary(self):
         return
