@@ -7,7 +7,6 @@ import random
 '''
 Lineups not saving for each next half inning, 
 also same player does every at bat (index not incrementing)
-Hits is not working either (i know this because base state never changes on a hit)
 '''
 
 class Player():
@@ -16,11 +15,7 @@ class Player():
         self.hitter = hitter
         self.weird = False
         self.team = team_name
-        '''
-        rn its pretty much working we just need a way to make sure that
-        it is only working on actual players and not total columns or league
-        columns.
-        '''
+
         if self.hitter == True:
             self.df = pd.DataFrame(df_row, columns = scrap.hit_cols)
             self.df.reset_index(inplace = True)
@@ -188,7 +183,7 @@ class Baseball():
             self.game(Team2, Team1, Team2.lineup, Team1.lineup, Team2.rotation[0], Team1.rotation[0])
 
         # summary
-        # self.summary(Team1, Team2)
+        self.summary(Team1, Team2)
 
         ''' -------------------------------- Baseball Game Functions ------------------------------------- '''
     def PA(self, hitter, pitcher):
@@ -326,12 +321,11 @@ class Baseball():
                     base_state[2] = base_state[0]
                     base_state[1] = hitter
                     base_state[0] = None
-
         return base_state, runs_scored_on_play
 
 
 
-    def half_inning(self, lineup, pitcher, hitting_team_score):
+    def half_inning(self, lineup, current_batsman_index, pitcher, hitting_team_score):
         # maybe we sort lineups by stats using lambda
 
         hitting_team_score = hitting_team_score
@@ -339,15 +333,19 @@ class Baseball():
         # fill base state with players based on result inside of the advance_bases function
         base_state = [None,None,None]
         outs = 0
+        index = current_batsman_index
 
-        ''' might need to redo this while loop '''
-        ''' along with redoing the hits base state '''
+        if current_batsman_index >= len(lineup):
+            index = 0
+
+        ''' indexing and saving the lineup position within the while loop is causing problems '''
+
+        # we need to check somewhere to make sure that if the index == len(lineup), we need to restart the index
 
         while outs < 3:
 
-            index = 0
             result = self.PA(lineup[index], pitcher)            
-            # print(f'{lineup[index].team} {lineup[index].Name} {result}')
+            print(f'{lineup[index].team} {lineup[index].Name} {result} lenght of team lineup: {len(lineup)}  Lineup position: {index + 1}')
 
             # check if there was an out
             if result == 'IPO':
@@ -376,61 +374,68 @@ class Baseball():
                 pitcher.H += 1
                 lineup[index].H += 1
                 # then determine what kind of hit it is
-                hit_type = random.choices(['1B', '2B', '3B', 'HR'], (lineup[index].singlep, lineup[index].doublep, lineup[index].triplep, lineup[index].HRp))
+                hit_type = random.choices(['1B', '2B', '3B', 'HR'], (lineup[index].singlep, lineup[index].doublep, lineup[index].triplep, lineup[index].HRp))[0]
+                print(hit_type)
                 if hit_type == '1B':
-                    print('1B')
-                    base_state, scored = self.advance_bases(base_state, result, lineup[index])
+                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index])
                     hitting_team_score += scored
                     lineup[index].singles += 1
                     pitcher.singles += 1
                     index += 1
                 elif hit_type == '2B':
-                    print('2B')
-                    base_state, scored = self.advance_bases(base_state, result, lineup[index])
+                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index])
                     hitting_team_score += scored
                     lineup[index].doubles += 1
                     pitcher.doubles += 1
                     index += 1
                 elif hit_type == '3B':
-                    print('3B')
-                    base_state, scored = self.advance_bases(base_state, result, lineup[index])
+                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index])
                     hitting_team_score += scored
                     lineup[index].triples += 1
                     pitcher.triples += 1
                     index += 1
                 elif hit_type == 'HR':
-                    print('HR')
-                    base_state, scored = self.advance_bases(base_state, result, lineup[index])
+                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index])
                     hitting_team_score += scored
                     lineup[index].HR += 1
                     pitcher.HR += 1
                     index += 1
-            print(base_state)
 
-            index += 1
+                if index == len(lineup):
+                    index -= index
+
             pitcher.IP += 1
-        print('\nNEW HALF INNING\n')
-        # hopefully this saves lineup position
-        lineup_position = lineup[index]
-        return hitting_team_score, lineup_position
+
+
+        return hitting_team_score, index
 
 
     def game(self, team1, team2, lineup1, lineup2, pitcher1, pitcher2):
 
-        for player in lineup1[:9]:
-            print(player.Name)
+        # display starting lineup
+        # for player in lineup1[:9]:
+        #     print(player.Name)
+
+        lineup1 = lineup1[:9]
+        lineup2 = lineup2[:9]
 
         team1Score = 0
         team2Score = 0
-        next_lineup1 = [lineup1]
-        next_lineup2 = [lineup2]
+
+        ''' come back to this lineup problem '''
+        next_lineup1_list = [0]
+        next_lineup2_list = [0]
+        
+        next_in_line1 = next_lineup1_list[-1]
+        next_in_line2 = next_lineup2_list[-1]
+
         for i in range(9):
-            runs, saved_lineup = self.half_inning(next_lineup1[0 + i], pitcher2, team1Score)
-            next_lineup1.append(saved_lineup)
+            runs, new_lineup_index  = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score)
+            next_lineup1_list.append(new_lineup_index)
             team1Score += runs
 
-            runs, saved_lineup = self.half_inning(next_lineup2[0 + i], pitcher1, team2Score)
-            next_lineup2.append(saved_lineup)
+            runs, new_lineup_index = self.half_inning(lineup2, next_in_line2, pitcher1, team2Score)
+            next_lineup2_list.append(new_lineup_index)
             team2Score += runs
 
         # seems a little complicated, try later
@@ -465,11 +470,11 @@ class Baseball():
 
     ''' -------------------------- Summary Functions -----------------------------'''
 
-    def sum_hitter(self, hitter):
-        print(f'\n{hitter.Name} Hits: {hitter.H}')
+    # def sum_hitter(self, hitter):
+    #     print(f'\n{hitter.Name} Hits: {hitter.H}')
 
-    def sum_pitcher(self, pitcher):
-        print(f'\n{pitcher.Name} Strikeouts: {pitcher.K}')
+    # def sum_pitcher(self, pitcher):
+    #     print(f'\n{pitcher.Name} Strikeouts: {pitcher.K}')
 
     def sum_team(self, team):
         print('')
@@ -482,18 +487,18 @@ class Baseball():
         for i in range(10):
             print('-', end = ' ')
         print('\n\nWINNING PERCENTAGE')
-        print(f'\n{team1.name}: {team1.wins / (team1.wins + team1.losses + team1.draws):.2f}%')
-        print(f'{team2.name}: {team1.wins / (team2.wins + team2.losses + team2.draws):.2f}%\n')
+        print(f'\n{team1.name}: {(team1.wins / (team1.wins + team1.losses + team1.draws)) * 100:.2f}%')
+        print(f'{team2.name}: {(team1.wins / (team2.wins + team2.losses + team2.draws)) * 100:.2f}%\n')
 
-        self.sum_team(team1)
-        self.sum_team(team2)
+        # self.sum_team(team1)
+        # self.sum_team(team2)
 
-        for hitter in team1.lineup:
-            self.sum_hitter(hitter)
-        for hitter in team2.lineup:
-            self.sum_hitter(hitter)
+        # for hitter in team1.lineup:
+        #     self.sum_hitter(hitter)
+        # for hitter in team2.lineup:
+        #     self.sum_hitter(hitter)
 
-        for pitcher in team1.rotation:
-            self.sum_pitcher(pitcher)
-        for pitcher in team2.rotation:
-            self.sum_pitcher(pitcher)
+        # for pitcher in team1.rotation:
+        #     self.sum_pitcher(pitcher)
+        # for pitcher in team2.rotation:
+        #     self.sum_pitcher(pitcher)
