@@ -5,8 +5,9 @@ import pandas as pd
 import random
 
 '''
-Lineups not saving for each next half inning, 
-also same player does every at bat (index not incrementing)
+WISH LIST
+- moving through the pitching rotation for each game
+- teams not always winning and losing same amount of games
 '''
 
 class Player():
@@ -326,21 +327,14 @@ class Baseball():
 
 
     def half_inning(self, lineup, current_batsman_index, pitcher, hitting_team_score):
-        # maybe we sort lineups by stats using lambda
-
+        # maybe we sort lineups by stats using lambda eventually
         hitting_team_score = hitting_team_score
-
-        # fill base state with players based on result inside of the advance_bases function
         base_state = [None,None,None]
         outs = 0
         index = current_batsman_index
 
         if current_batsman_index >= len(lineup):
             index = 0
-
-        ''' indexing and saving the lineup position within the while loop is causing problems '''
-
-        # we need to check somewhere to make sure that if the index == len(lineup), we need to restart the index
 
         while outs < 3:
 
@@ -401,8 +395,8 @@ class Baseball():
                     pitcher.HR += 1
                     index += 1
 
-                if index == len(lineup):
-                    index -= index
+            if index == len(lineup):
+                index = 0
 
             pitcher.IP += 1
 
@@ -458,8 +452,9 @@ class Baseball():
         elif team1Score == team2Score:
             team1.draws += 1
             team2.draws += 1
-        return
 
+        print(f'\n\n{team1.name} wins, draws, losses: {team1.wins} {team1.losses} {team1.draws}')
+        print(f'{team2.name} wins, draws, losses: {team2.wins} {team2.losses} {team2.draws}')
 
 
 
@@ -487,6 +482,7 @@ class Baseball():
         for i in range(10):
             print('-', end = ' ')
         print('\n\nWINNING PERCENTAGE')
+        print(f'In {team1.wins + team1.losses + team1.draws} simulated games...')
         print(f'\n{team1.name}: {(team1.wins / (team1.wins + team1.losses + team1.draws)) * 100:.2f}%')
         print(f'{team2.name}: {(team1.wins / (team2.wins + team2.losses + team2.draws)) * 100:.2f}%\n')
 
