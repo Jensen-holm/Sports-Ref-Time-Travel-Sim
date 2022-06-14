@@ -7,7 +7,6 @@ import random
 '''
 WISH LIST
 - moving through the pitching rotation for each game
-- teams not always winning and losing same amount of games
 '''
 
 class Player():
@@ -196,7 +195,7 @@ class Baseball():
             base_state[i] = None
         return base_state
 
-    def advance_bases(self, base_state, play_result, hitter):
+    def advance_bases(self, base_state, play_result, hitter, pitcher):
         runs_scored_on_play = 0
         bases_occupied = []
         for base in base_state:
@@ -206,6 +205,7 @@ class Baseball():
         # if there is a homerun
         if play_result == 'HR':
             runs_scored_on_play += (1 + len(bases_occupied))
+            print(f'{hitter.Name} hits a {1 + len(bases_occupied)} BOMB off of {pitcher.Name}')
             base_state = self.clear_bases(base_state)
 
         elif play_result == '3B':
@@ -295,11 +295,13 @@ class Baseball():
                         base_state[1] = base_state[0]
                         base_state[0] = hitter
                     elif play_result == '1B':
+                        print(f'{base_state[2].Name} scores after {hitter.Name} {play_result}')
                         runs_scored_on_play += 1
                         base_state[2] = None
                         base_state[1] = base_state[0]
                         base_state[0] = hitter
                     elif play_result == '2B':
+                        print(f'{base_state[2].Name} and {base_state[0].Name} scores after {hitter.Name} {play_result}')
                         runs_scored_on_play += 2
                         base_state[1] = hitter
                         base_state[0] = None
@@ -308,17 +310,20 @@ class Baseball():
             # bases loaded (3 runners on)
             elif len(bases_occupied) == 3:
                 if play_result == 'BB' or play_result == 'HBP':
+                    print(f'{base_state[2].Name} scores after {hitter.Name} {play_result}')
                     runs_scored_on_play += 1
                     base_state[2] = base_state[1]
                     base_state[1] = base_state[0]
                     base_state[0] = hitter
                 elif play_result == '1B':
+                    print(f'{base_state[2].Name} scores after {hitter.Name} {play_result}')
                     runs_scored_on_play += 1
                     base_state[2] = base_state[1]
                     base_state[1] = base_state[0]
                     base_state[0] = hitter
                 elif play_result == '2B':
                     runs_scored_on_play += 2
+                    print(f'{base_state[2].Name} and {base_state[1].Name} scores after {hitter.Name} {play_result}')
                     base_state[2] = base_state[0]
                     base_state[1] = hitter
                     base_state[0] = None
@@ -339,7 +344,7 @@ class Baseball():
         while outs < 3:
 
             result = self.PA(lineup[index], pitcher)            
-            print(f'{lineup[index].team} {lineup[index].Name} {result} lenght of team lineup: {len(lineup)}  Lineup position: {index + 1}')
+            # print(f'{lineup[index].team} {lineup[index].Name} {result} lenght of team lineup: {len(lineup)}  Lineup position: {index + 1}')
 
             # check if there was an out
             if result == 'IPO':
@@ -353,13 +358,13 @@ class Baseball():
 
             # then if it was something else
             elif result == 'HBP':
-                base_state, scored = self.advance_bases(base_state, result, lineup[index])
+                base_state, scored = self.advance_bases(base_state, result, lineup[index], pitcher)
                 hitting_team_score += scored
                 pitcher.HBP += 1
                 lineup[index].HBP += 1
                 index += 1
             elif result == 'BB':
-                base_state, scored = self.advance_bases(base_state, result, lineup[index])
+                base_state, scored = self.advance_bases(base_state, result, lineup[index], pitcher)
                 hitting_team_score += scored
                 pitcher.BB += 1
                 lineup[index].BB += 1
@@ -369,27 +374,26 @@ class Baseball():
                 lineup[index].H += 1
                 # then determine what kind of hit it is
                 hit_type = random.choices(['1B', '2B', '3B', 'HR'], (lineup[index].singlep, lineup[index].doublep, lineup[index].triplep, lineup[index].HRp))[0]
-                print(hit_type)
                 if hit_type == '1B':
-                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index])
+                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index], pitcher)
                     hitting_team_score += scored
                     lineup[index].singles += 1
                     pitcher.singles += 1
                     index += 1
                 elif hit_type == '2B':
-                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index])
+                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index], pitcher)
                     hitting_team_score += scored
                     lineup[index].doubles += 1
                     pitcher.doubles += 1
                     index += 1
                 elif hit_type == '3B':
-                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index])
+                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index], pitcher)
                     hitting_team_score += scored
                     lineup[index].triples += 1
                     pitcher.triples += 1
                     index += 1
                 elif hit_type == 'HR':
-                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index])
+                    base_state, scored = self.advance_bases(base_state, hit_type, lineup[index], pitcher)
                     hitting_team_score += scored
                     lineup[index].HR += 1
                     pitcher.HR += 1
@@ -453,8 +457,8 @@ class Baseball():
             team1.draws += 1
             team2.draws += 1
 
-        print(f'\n\n{team1.name} wins, draws, losses: {team1.wins} {team1.losses} {team1.draws}')
-        print(f'{team2.name} wins, draws, losses: {team2.wins} {team2.losses} {team2.draws}')
+        print(f'\n{team1.name} wins, draws, losses: {team1.wins} {team1.losses} {team1.draws}')
+        print(f'{team2.name} wins, draws, losses: {team2.wins} {team2.losses} {team2.draws}\n\n')
 
 
 
@@ -484,7 +488,7 @@ class Baseball():
         print('\n\nWINNING PERCENTAGE')
         print(f'In {team1.wins + team1.losses + team1.draws} simulated games...')
         print(f'\n{team1.name}: {(team1.wins / (team1.wins + team1.losses + team1.draws)) * 100:.2f}%')
-        print(f'{team2.name}: {(team1.wins / (team2.wins + team2.losses + team2.draws)) * 100:.2f}%\n')
+        print(f'{team2.name}: {(team2.wins / (team2.wins + team2.losses + team2.draws)) * 100:.2f}%\n')
 
         # self.sum_team(team1)
         # self.sum_team(team2)
