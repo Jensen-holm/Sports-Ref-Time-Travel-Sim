@@ -31,34 +31,43 @@ class ScrapeSR():
 
     ''' ------------------------------- Baseball Specific Functions ---------------------------------- '''
     def find_baseball_data(self, url):
-        html = BeautifulSoup(requests.get(url).text, features = 'lxml')
+        # html = BeautifulSoup(requests.get(url).text, features = 'lxml')
 
-        # parsing columns
-        th_tags = html.find_all('th', attrs = {'scope':'col'})
-        lst = [th.text for th in th_tags]
-        joined = ' '.join(lst).split('Rk') # we can get Rk out of the cols since it acts as the index
-        all_cols = [lisst.split() for lisst in joined][1:]
+        # # parsing columns
+        # th_tags = html.find_all('th', attrs = {'scope':'col'})
+        # lst = [th.text for th in th_tags]
+        # joined = ' '.join(lst).split('Rk') # we can get Rk out of the cols since it acts as the index
+        # all_cols = [lisst.split() for lisst in joined][1:]
 
         # pitching data hidden in comments for 'other' leagues (northwoods league for sure)
 
         if self.level.lower() == 'mlb':
-            hit_cols = all_cols[0]
-            pit_cols = all_cols[1]
+            # hit_cols = all_cols[0]
+            # pit_cols = all_cols[1]
+            # # parsing data 
+            # tables = html.find_all('table')
+            # tr = [table.find_all('tr') for table in tables]
+            hitting_data = pd.read_html(url)[0].dropna(how = 'all').fillna(0)
+            pitching_data = pd.read_html(url)[1].dropna(how = 'all').fillna(0)
+
+            hitting_data = hitting_data[hitting_data['Name'] != 'Name']
+            pitching_data = pitching_data[pitching_data['Name'] != 'Name']
+
+            hitting_data['Name'] = hitting_data['Name'].str.replace('*', '', regex = False)
+            hitting_data['Name'] = hitting_data['Name'].str.replace('#', '', regex = False)
+
+            pitching_data['Name'] = pitching_data['Name'].str.replace('*', '')
+            pitching_data['Name'] = pitching_data['Name'].str.replace('#', '')
+
         elif self.level.lower() == 'other':
-            hit_cols = all_cols[0]
-
+            # hit_cols = all_cols[0]
             # find pitching data in the comments
-
-        # parsing data 
-        tables = html.find_all('table')
-        tr = [table.find_all('tr') for table in tables]
-        hitting_data = pd.DataFrame([self.parse_row(row) for row in tr[0]], columns = hit_cols).dropna(how = 'all')
-        pitching_data = pd.DataFrame([self.parse_row(row) for row in tr[1]], columns = pit_cols).dropna(how = 'all')
+            print('not doing other rn')
 
         # parse fielding data out from the html comments at some point?
-        # in the future we should include statcast data if the years are 2015 or later
+        # in the future we should include statcast data and probs if the years are 2015 or later
 
-        return hitting_data, pitching_data, hit_cols, pit_cols
+        return hitting_data, pitching_data, hitting_data.columns, pitching_data.columns
 
     # sport specific functions
     def baseball(self):
