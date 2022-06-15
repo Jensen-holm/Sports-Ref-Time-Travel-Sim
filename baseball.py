@@ -4,11 +4,6 @@ import seaborn as sns
 import pandas as pd
 import random
 
-'''
-WISH LIST
-- moving through the pitching rotation for each game
-'''
-
 class Player():
 
     def __init__(self, df_row, scrap, hitter, team_name):
@@ -30,8 +25,6 @@ class Player():
             self.Name = self.df.at[0, 'Name']
             self.pitcher_probs()
 
-        # keep track of stats over simulation
-        # if they're a hitter
         self.K = 0
         self.BB = 0
         self.H = 0
@@ -43,8 +36,7 @@ class Player():
         self.IPO = 0
         self.AB = 0
         self.PA = 0
-        self.R = 0
-
+        self.RBI = 0
         # stats unique to pitchers
         if self.hitter == False:
             self.IP = 0
@@ -55,15 +47,20 @@ class Player():
     # call the rate stats funciton when the simulations are over
     def rate_stats(self):
         if self.hitter == True:
+            self.OBP = (self.BB + self.HBP + self.H) / self.PA
+            self.SLG = (self.singles + (self.doubles * 2) + (self.triples * 3) + (self.HR * 4)) / self.AB
             self.OPS = self.OBP + self.SLG
-            self.BA = self.H / self.at_bats
+            self.BA = self.H / self.AB
+            print(f'{self.Name} PA: {self.PA}, RBI: {self.RBI}, HR: {self.HR}, AVG: {self.BA:.3f}, OBP: {self.OBP:.3f}, SLG%: {self.SLG:.3f}, BB: {self.BB}, K: {self.K}')
         elif self.hitter == False:
-            self.WHIP = self.BB + self.H / self.IP
+            # not alot of these are actually incremented yet
+            self.WHIP = (self.BB + self.H) / self.IP
             self.ERA = (9 * self.ER) / self.IP
             self.HR_9 = self.HR / (self.IP / 9)
             self.K_9 = self.K / (self.IP / 9)
             self.BB_9 = self.BB / (self.IP / 9)
-            self.BB_K = self.BB / self.K
+            self.K_BB = self.K / self.BB
+            print(f'{self.Name} IP: {self.IP}, ERA: {self.ERA:.2f}, WHIP: {self.WHIP:.3f}, K/9: {self.K_9:.2f}, K/BB: {self.K_BB:.2f}')
 
     def pitcher_probs(self):
         if self.df.at[0, 'BF'] > 0:
@@ -157,13 +154,21 @@ class Team():
 
 class Baseball():
 
-    def __init__(self, level = 'MLB'):
+    def __init__(self):
+
+        self.LEVEL = input('\nENTER LEVEL OF COMPETITION (mlb or other): ').title().strip()
+
+        if self.LEVEL.lower() == 'other':
+            self.league = input('\nENTER LEAGUE NAME: ').title().strip()
 
         self.TEAM1 = input('\nENTER TEAM 1 (ex: 1899 Cincinnati Reds): ').title().strip()
         self.TEAM2 = input('ENTER TEAM 2 (ex: 1927 New York Yankees): ').title().strip()
 
-        self.level = level
-        scraper = ScrapeSR('Baseball', self.TEAM1, self.TEAM2, self.level)
+        if self.LEVEL.lower() == 'other':
+            scraper = ScrapeSR('Baseball', self.league, self.TEAM1, self.TEAM2, self.LEVEL)
+            
+        elif self.LEVEL.lower() == 'mlb':
+            scraper = ScrapeSR('Baseball', 'mlb', self.TEAM1, self.TEAM2, self.LEVEL)
 
         self.team1hit = scraper.hit1
         self.team2hit = scraper.hit2
@@ -176,11 +181,29 @@ class Baseball():
         self.num_sims = int(input('\nENTER NUMBER OF SIMULATIONS: '))
 
         # so they play equal home / road games
+
+        t1i = 0
+        t2i = 0
         ''' fix the pitching situation '''
         for i in range(self.num_sims // 2):
-            self.game(Team1, Team2, Team1.lineup, Team2.lineup, Team1.rotation[0], Team2.rotation[0])
+                if t1i == len(Team1.rotation):
+                    t1i = 0
+                if t2i == len(Team2.rotation):
+                    t2i = 0
+                self.game(Team1, Team2, Team1.lineup, Team2.lineup, Team1.rotation[t1i], Team2.rotation[t2i])
+                t1i += 1
+                t2i += 1
+                
+        t2i = 0
+        t1i = 0
         for i in range(self.num_sims // 2):
-            self.game(Team2, Team1, Team2.lineup, Team1.lineup, Team2.rotation[0], Team1.rotation[0])
+            if t1i == len(Team1.rotation):
+                t1i = 0
+            if t2i == len(Team2.rotation):
+                t2i = 0
+            self.game(Team2, Team1, Team2.lineup, Team1.lineup, Team2.rotation[t2i], Team1.rotation[t1i])
+            t1i += 1
+            t2i += 1
 
         # summary
         self.summary(Team1, Team2)
@@ -188,6 +211,12 @@ class Baseball():
         ''' -------------------------------- Baseball Game Functions ------------------------------------- '''
     def PA(self, hitter, pitcher):
         result = random.choices(['K', 'BB', 'H', 'IPO', 'HBP'], weights = (hitter.Kp + pitcher.Kp, hitter.BBp + pitcher.BBp, hitter.Hp + pitcher.Hp, hitter.IPOp + pitcher.IPOp, hitter.HBPp + pitcher.HBPp))
+        hitter.PA += 1
+        pitcher.BF += 1
+
+        if result != 'HBP' and result != 'BB':
+            hitter.AB += 1
+
         return result[0]
 
     def clear_bases(self, base_state):
@@ -205,7 +234,7 @@ class Baseball():
         # if there is a homerun
         if play_result == 'HR':
             runs_scored_on_play += (1 + len(bases_occupied))
-            print(f'{hitter.Name} hits a {1 + len(bases_occupied)} BOMB off of {pitcher.Name}')
+            print(f'{hitter.Name} hits a {1 + len(bases_occupied)} run BOMB off of {pitcher.Name}')
             base_state = self.clear_bases(base_state)
 
         elif play_result == '3B':
@@ -327,6 +356,8 @@ class Baseball():
                     base_state[2] = base_state[0]
                     base_state[1] = hitter
                     base_state[0] = None
+        hitter.RBI += runs_scored_on_play
+        pitcher.ER += runs_scored_on_play
         return base_state, runs_scored_on_play
 
 
@@ -344,7 +375,7 @@ class Baseball():
         while outs < 3:
 
             result = self.PA(lineup[index], pitcher)            
-            # print(f'{lineup[index].team} {lineup[index].Name} {result} lenght of team lineup: {len(lineup)}  Lineup position: {index + 1}')
+            print(f'{lineup[index].team} {lineup[index].Name} {result}')
 
             # check if there was an out
             if result == 'IPO':
@@ -353,6 +384,7 @@ class Baseball():
                 outs += 1
             elif result == 'K':
                 lineup[index].K += 1
+                pitcher.K += 1
                 index += 1
                 outs += 1
 
@@ -398,35 +430,22 @@ class Baseball():
                     lineup[index].HR += 1
                     pitcher.HR += 1
                     index += 1
-
             if index == len(lineup):
                 index = 0
-
-            pitcher.IP += 1
-
-
+        pitcher.IP += 1
         return hitting_team_score, index
 
-
     def game(self, team1, team2, lineup1, lineup2, pitcher1, pitcher2):
-
-        # display starting lineup
-        # for player in lineup1[:9]:
-        #     print(player.Name)
-
+        # maybe we prompt the user to set lineups after printing all available hitters to choose from
+        # pitchers as well
         lineup1 = lineup1[:9]
         lineup2 = lineup2[:9]
-
         team1Score = 0
         team2Score = 0
-
-        ''' come back to this lineup problem '''
         next_lineup1_list = [0]
         next_lineup2_list = [0]
-        
         next_in_line1 = next_lineup1_list[-1]
         next_in_line2 = next_lineup2_list[-1]
-
         for i in range(9):
             runs, new_lineup_index  = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score)
             next_lineup1_list.append(new_lineup_index)
@@ -448,24 +467,20 @@ class Baseball():
 
         if team1Score > team2Score:
             team1.wins += 1
+            print(f'\nAnd this one belongs to the {team1.name}')
             team2.losses += 1
-        elif team2Score > team2Score:
+        elif team1Score < team2Score:
+            print(f'\nAnd this one belongs to the {team2.name}')
             team1.losses += 1
             team2.wins += 1
         # while we still do not have extra innings done yet
         elif team1Score == team2Score:
+            print(f'\nTIE (working on extra innings)')
             team1.draws += 1
             team2.draws += 1
 
-        print(f'\n{team1.name} wins, draws, losses: {team1.wins} {team1.losses} {team1.draws}')
-        print(f'{team2.name} wins, draws, losses: {team2.wins} {team2.losses} {team2.draws}\n\n')
-
-
-
-
-
-
-
+        print(f'\n{team1.name} wins, losses, ties: {team1.wins} {team1.losses} {team1.draws}')
+        print(f'{team2.name} wins, losses, ties: {team2.wins} {team2.losses} {team2.draws}\n\n')
 
     ''' -------------------------- Summary Functions -----------------------------'''
 
@@ -479,26 +494,33 @@ class Baseball():
         print('')
 
     def summary(self, team1, team2):
-        print('\n')
         for i in range(9):
             print('-', end = ' ')
         print('RESULTS', end = ' ')
         for i in range(10):
             print('-', end = ' ')
+        # call the rate stats function on all players
+        print(f'\n{team1.name} lineup:')
+        for hitter in team1.lineup:
+            if hitter.PA > 0 and hitter.H > 0:
+                hitter.rate_stats()
+        print('\n')
+        print(f'{team1.name} pitchers:')
+        for pitcher in team1.rotation:
+            if pitcher.IP > 0:
+                pitcher.rate_stats()
+        print('\n')
+        print(f'{team2.name} lineup:')
+        for hitter in team2.lineup:
+            if hitter.PA > 0 and hitter.H > 0:
+                hitter.rate_stats()
+        print('\n')
+        print(f'{team2.name} pitchers')
+        for pitcher in team2.rotation:
+            if pitcher.IP > 0:
+                pitcher.rate_stats()
+        print('\n')
         print('\n\nWINNING PERCENTAGE')
         print(f'In {team1.wins + team1.losses + team1.draws} simulated games...')
         print(f'\n{team1.name}: {(team1.wins / (team1.wins + team1.losses + team1.draws)) * 100:.2f}%')
         print(f'{team2.name}: {(team2.wins / (team2.wins + team2.losses + team2.draws)) * 100:.2f}%\n')
-
-        # self.sum_team(team1)
-        # self.sum_team(team2)
-
-        # for hitter in team1.lineup:
-        #     self.sum_hitter(hitter)
-        # for hitter in team2.lineup:
-        #     self.sum_hitter(hitter)
-
-        # for pitcher in team1.rotation:
-        #     self.sum_pitcher(pitcher)
-        # for pitcher in team2.rotation:
-        #     self.sum_pitcher(pitcher)
