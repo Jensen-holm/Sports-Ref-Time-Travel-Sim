@@ -4,12 +4,15 @@ import seaborn as sns
 import pandas as pd
 import random
 sns.set()
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 '''
     - make it work for all leagues in scrape.py
     - take starters out in the 7th and cycle through relievers
-    - create data visualizations for after the simulations
+    - create data visualizations for after the simulations (need a key)
     - keep track of no hitters and cycles and things like that
+    - total run dirrerential
 '''
 
 class Player():
@@ -148,7 +151,12 @@ class Team():
         self.lineup = self.lineup[:9]
 
         # rn the rotation is starters only
-        self.rotation = [pitcher for pitcher in self.pitchers if pitcher.weird == False and pitcher.df.at[0, 'Pos'] == 'SP' or pitcher.df.at[0, 'Pos'] == 'P'] # excluding pure relievers
+        if self.scrap.level.lower() == 'mlb':
+            self.rotation = [pitcher for pitcher in self.pitchers if pitcher.weird == False and pitcher.df.at[0, 'Pos'] == 'SP' or pitcher.df.at[0, 'Pos'] == 'P'] # excluding pure relievers (doesnt work on other leagues)
+        elif self.scrap.level.lower() == 'other':
+            self.rotation = [pitcher for pitcher in self.pitchers] # mess with it later
+            self.rotation.sort(key = lambda x: x.df.at[0, 'IP'])
+            self.rotation = self.rotation[:10]
 
         self.wins = 0
         self.losses = 0
@@ -158,9 +166,9 @@ class Team():
         ''' is this why votto doesnt show up? '''
     def generate_players(self):
         hit_names = self.hit_prob['Name'].unique()
-        hit_names = [name for name in hit_names if name != 'None' and 'totals' not in name.lower() and 'Rank' not in name]
+        hit_names = [name for name in hit_names if name != 'None' and 'totals' not in name.lower() and 'Rank' not in name and 'Player' not in name]
         pit_names = self.pit_prob['Name'].unique()        
-        pit_names = [name for name in pit_names if name != 'None' and 'totals' not in name.lower() and 'Rank' not in name]
+        pit_names = [name for name in pit_names if name != 'None' and 'totals' not in name.lower() and 'Rank' not in name and 'Player' not in name]
         hitters = [Player(self.hit_prob[self.hit_prob['Name'] == name], self.scrap, hitter = True, team_name = self.name) for name in hit_names]
         pitchers = [Player(self.pit_prob[self.pit_prob['Name'] == name], self.scrap, hitter = False, team_name = self.name) for name in pit_names]
         return hitters, pitchers
@@ -205,8 +213,8 @@ class Baseball():
                 t1i += 1
                 t2i += 1
                 games += 1
-                plt.scatter(games, Team1.wins, marker = '*', c = 'blue')
-                plt.scatter(games, Team2.wins, marker = '*', c = 'orange')
+                plt.scatter(games, Team1.wins, marker = 'o', c = 'blue', alpha = .05)
+                plt.scatter(games, Team2.wins, marker = 'o', c = 'red', alpha = .05)
         t2i = 0
         t1i = 0
         for i in range(self.num_sims // 2):
@@ -218,8 +226,8 @@ class Baseball():
             t1i += 1
             t2i += 1
             games += 1
-            plt.scatter(games, Team2.wins, marker = '*', c = 'blue')
-            plt.scatter(games, Team1.wins, marker = '*', c = 'orange')
+            plt.scatter(games, Team1.wins, marker = 'o', c = 'blue', alpha = .05)
+            plt.scatter(games, Team2.wins, marker = 'o', c = 'red', alpha = .05)
 
         self.summary(Team1, Team2)
 
@@ -486,7 +494,7 @@ class Baseball():
             team1.draws += 1
             team2.draws += 1
 
-        games = team1.wins + team1.draws + team1.losses
+        # games = team1.wins + team1.draws + team1.losses
         # plt.scatter(games, team1.wins, marker = '*', c = 'blue')
         # plt.scatter(games, team2.wins, marker = '*', c = 'orange')
 
@@ -525,8 +533,14 @@ class Baseball():
             if pitcher.IP > 0:
                 pitcher.rate_stats()
         print('\n')
-        print('\n\nWINNING PERCENTAGE')
+        print('\n\nWIN PROBABILITY')
         print(f'In {team1.wins + team1.losses + team1.draws} simulated games...')
         print(f'\n{team1.name}: {(team1.wins / (team1.wins + team1.losses + team1.draws)) * 100:.2f}%')
         print(f'{team2.name}: {(team2.wins / (team2.wins + team2.losses + team2.draws)) * 100:.2f}%\n')
+        print(f'EXCLUDING THE {team1.draws} TIES')
+        print(f'{team1.name}: {(team1.wins / (team1.losses + team1.wins)) * 100:.2f}%')
+        print(f'{team2.name}: {(team2.wins / (team2.losses + team2.wins)) * 100:.2f}%\n')
+        plt.title(f'{team1.name} vs. {team2.name}')
+        plt.xlabel('Games')
+        plt.ylabel('Wins')
         plt.show()
