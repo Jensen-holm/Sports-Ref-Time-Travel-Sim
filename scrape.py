@@ -3,10 +3,6 @@ from bs4 import BeautifulSoup, Comment
 import pandas as pd
 import requests
 
-''' working on find link function for 2022 '''
-
-''' think the issue is that the sewp info function is meant for league links '''
-
 class ScrapeSR():
 
     def __init__(self, sport, league, team1, team2, level):
