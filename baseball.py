@@ -8,9 +8,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 '''
-    - make it work for all leagues in scrape.py
     - take starters out in the 7th and cycle through relievers
-    - create data visualizations for after the simulations (need a key)
     - keep track of no hitters and cycles and things like that
     - total run dirrerential
 '''
@@ -136,34 +134,66 @@ class Player():
 
 class Team():
 
-    def __init__(self, hit_df, pit_df, scrap, team_name):
+    def __init__(self, hit_df, pit_df, scrap, team_name, color, line_settings):
+        # for graphs
+        self.color = color
         self.hit_prob = hit_df
         self.pit_prob = pit_df
         self.scrap = scrap
         self.name = team_name
         self.hitters, self.pitchers = self.generate_players()
-        self.lineup = [hitter for hitter in self.hitters if hitter.weird == False]
-        # for player in self.lineup:
-        #     print(player.Name)
-        # print('\n')
-        # sort the lineup (play around with this) rn its the top 9 hit probabilities
-        self.lineup.sort(key = lambda x: x.df.at[0, 'TB'], reverse = True)
-        self.lineup = self.lineup[:9]
+        self.lineup_settings = line_settings
 
-        # rn the rotation is starters only
-        if self.scrap.level.lower() == 'mlb':
-            self.rotation = [pitcher for pitcher in self.pitchers if pitcher.weird == False and pitcher.df.at[0, 'Pos'] == 'SP' or pitcher.df.at[0, 'Pos'] == 'P'] # excluding pure relievers (doesnt work on other leagues)
-        elif self.scrap.level.lower() == 'other':
-            self.rotation = [pitcher for pitcher in self.pitchers] # mess with it later
-            self.rotation.sort(key = lambda x: x.df.at[0, 'IP'])
-            self.rotation = self.rotation[:10]
+        if self.lineup_settings == 'manual':
+            # hitters
+            for player in self.hitters:
+                if player.weird == False:
+                    print(player.Name)
+            print('\n -- SET LINEUP --\n(must enter 9)')
+            lineup_names = []
+            for i in range(9):
+                lineup_names.append(input(str(i + 1)))
+            print('\n')
+            # now pitchers
+            for player in self.pitchers:
+                if player.weird == False:
+                    print(player.Name)
+            print('\n -- SET PITCHERS --\n(enter . to quit adding pitchers)')
+            rotation_names = ['']
+            while rotation_names[-1] != '.':
+                i = 1
+                rotation_names.append(input(str(i)))
+                i += 1
+            print('\n')
+
+            self.lineup =[]
+            for name in lineup_names:
+                for player in self.hitters:
+                    if name == player.Name:
+                        self.lineup.append(player)
+            self.rotation = []
+            for name in rotation_names:
+                for player in self.pitchers:
+                    if name == player.Name:
+                        self.rotation.append(player)
+    
+        elif self.lineup_settings == 'auto':
+            self.lineup = [hitter for hitter in self.hitters if hitter.weird == False] #and 'P' not in hitter.df.at['Pos'] and 'CL' not in hitter.df.at[0, 'Pos']]
+            self.lineup.sort(key = lambda x: x.df.at[0, 'TB'], reverse = True)
+            self.lineup = self.lineup[:9]
+            # rn the rotation is starters only for auto settings
+            if self.scrap.level.lower() == 'mlb':
+                self.rotation = [pitcher for pitcher in self.pitchers if pitcher.weird == False and pitcher.df.at[0, 'Pos'] == 'SP' or pitcher.df.at[0, 'Pos'] == 'P'] # excluding pure relievers (doesnt work on other leagues)
+            elif self.scrap.level.lower() == 'other':
+                self.rotation = [pitcher for pitcher in self.pitchers] # mess with it later
+                self.rotation.sort(key = lambda x: x.df.at[0, 'IP'], reverse = True)
+                self.rotation = self.rotation[:10] # 10 pitchers?
 
         self.wins = 0
         self.losses = 0
         self.draws = 0
         self.games = self.draws + self.wins + self.losses 
 
-        ''' is this why votto doesnt show up? '''
     def generate_players(self):
         hit_names = self.hit_prob['Name'].unique()
         hit_names = [name for name in hit_names if name != 'None' and 'totals' not in name.lower() and 'Rank' not in name and 'Player' not in name]
@@ -185,6 +215,12 @@ class Baseball():
         self.TEAM1 = input('\nENTER TEAM 1 (ex: 1899 Cincinnati Reds): ').title().strip()
         self.TEAM2 = input('ENTER TEAM 2 (ex: 1927 New York Yankees): ').title().strip()
 
+        self.SITUATION = input('\nSITUATION ANALYSIS? (y/n): ').strip().lower()
+        if self.SITUATION == 'y':
+            self.situation()
+
+        self.lineup_settings = input('\nLINEUP SETTINGS (manual/auto): ').strip().lower()
+
         if self.LEVEL.lower() == 'other':
             scraper = ScrapeSR('Baseball', self.league, self.TEAM1, self.TEAM2, self.LEVEL)
             
@@ -196,8 +232,8 @@ class Baseball():
         self.team1pit = scraper.pit1
         self.team2pit = scraper.pit2
 
-        Team1 = Team(self.team1hit, self.team1pit, scraper, self.TEAM1)
-        Team2 = Team(self.team2hit, self.team2pit, scraper, self.TEAM2)
+        Team1 = Team(self.team1hit, self.team1pit, scraper, self.TEAM1, 'red', self.lineup_settings)
+        Team2 = Team(self.team2hit, self.team2pit, scraper, self.TEAM2, 'blue', self.lineup_settings)
 
         self.num_sims = int(input('\nENTER NUMBER OF SIMULATIONS: '))
         # so they play equal home / road games
@@ -213,8 +249,8 @@ class Baseball():
                 t1i += 1
                 t2i += 1
                 games += 1
-                plt.scatter(games, Team1.wins, marker = 'o', c = 'blue', alpha = .05)
-                plt.scatter(games, Team2.wins, marker = 'o', c = 'red', alpha = .05)
+                plt.scatter(games, Team1.wins, marker = 'o', c = Team1.color, alpha = self.num_sims / (self.num_sims * 4))
+                plt.scatter(games, Team2.wins, marker = 'o', c = Team2.color, alpha = self.num_sims / (self.num_sims * 4))
         t2i = 0
         t1i = 0
         for i in range(self.num_sims // 2):
@@ -226,8 +262,8 @@ class Baseball():
             t1i += 1
             t2i += 1
             games += 1
-            plt.scatter(games, Team1.wins, marker = 'o', c = 'blue', alpha = .05)
-            plt.scatter(games, Team2.wins, marker = 'o', c = 'red', alpha = .05)
+            plt.scatter(games, Team1.wins, marker = 'o', c = Team1.color, alpha = self.num_sims / (self.num_sims * 4))
+            plt.scatter(games, Team2.wins, marker = 'o', c = Team2.color, alpha = self.num_sims / (self.num_sims * 4))
 
         self.summary(Team1, Team2)
 
@@ -448,14 +484,11 @@ class Baseball():
         return runs_scored, index
 
     def game(self, team1, team2, lineup1, lineup2, pitcher1, pitcher2):
-        # maybe we prompt the user to set lineups after printing all available hitters to choose from
-        # pitchers as well
         team1Score = 0
         team2Score = 0
         next_lineup1_list = [0]
         next_lineup2_list = [0]
 
-        ''' new lineup index not working '''
         for i in range(9):
             next_in_line1 = next_lineup1_list[-1]
             runs, new_lineup_index  = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score)
@@ -494,16 +527,39 @@ class Baseball():
             team1.draws += 1
             team2.draws += 1
 
-        # games = team1.wins + team1.draws + team1.losses
-        # plt.scatter(games, team1.wins, marker = '*', c = 'blue')
-        # plt.scatter(games, team2.wins, marker = '*', c = 'orange')
-
         print(f'\n{team1.name} wins, losses, ties: {team1.wins} {team1.losses} {team1.draws}')
         print(f'{team2.name} wins, losses, ties: {team2.wins} {team2.losses} {team2.draws}\n\n')
 
+    def situation(self):
+
+        team1Score = int(input(f'\n{self.TEAM1} SCORE: '))
+        team2score = int(input(f'{self.TEAM2} SCORE: '))
+
+        inning = int(input('INNING: '))
+        outs = int(input('OUTS: '))
+
+        first = int(input('RUNNER ON FIRST? (1/0): '))
+        second = int(input('RUNNER ON SECOND? (1/0): '))
+        third = int(input('RUNNER ON THIRD? (1/0): '))
+
+        next_lineup1_list = [0]
+        next_lineup2_list = [0]
+
+        # for i in range(9):
+        #     next_in_line1 = next_lineup1_list[-1]
+        #     runs, new_lineup_index  = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score)
+        #     next_lineup1_list.append(new_lineup_index)
+        #     team1Score += runs
+
+        #     next_in_line2 = next_lineup2_list[-1]
+        #     runs, new_lineup_index = self.half_inning(lineup2, next_in_line2, pitcher1, team2Score)
+        #     next_lineup2_list.append(new_lineup_index)
+            # team2Score += runs
+
+
+        return
+    
     ''' -------------------------- Summary Functions -----------------------------'''
-    def sum_team(self, team):
-        print('')
 
     def summary(self, team1, team2):
         for i in range(9):
@@ -540,7 +596,7 @@ class Baseball():
         print(f'EXCLUDING THE {team1.draws} TIES')
         print(f'{team1.name}: {(team1.wins / (team1.losses + team1.wins)) * 100:.2f}%')
         print(f'{team2.name}: {(team2.wins / (team2.losses + team2.wins)) * 100:.2f}%\n')
-        plt.title(f'{team1.name} vs. {team2.name}')
+        plt.title(f'{team1.name} ({team1.color}) vs. {team2.name} ({team2.color})')
         plt.xlabel('Games')
         plt.ylabel('Wins')
         plt.show()
