@@ -3,6 +3,10 @@ from bs4 import BeautifulSoup, Comment
 import pandas as pd
 import requests
 
+''' working on find link function for 2022 '''
+
+''' think the issue is that the sewp info function is meant for league links '''
+
 class ScrapeSR():
 
     def __init__(self, sport, league, team1, team2, level):
@@ -31,8 +35,6 @@ class ScrapeSR():
                 soup = BeautifulSoup(s, "html.parser")
                 team_links = [('https://baseball-reference.com' + a['href']) for a in soup.select('[href*="/register/team.cgi?id="]')][:num_teams]
                 return team_links
-            # if self.team2yr == '2022' and self.level.lower() == 'other':
-            #     year, name, num_teams = self.sewp_info(BeautifulSoup(requests.get(url).text, features = 'lxml'))
 
         elif second_check == False:
             # if self.team1yr != '2022' and self.team2yr != '2022':
@@ -49,25 +51,17 @@ class ScrapeSR():
         return spans[8].text, spans[9].text, p_tags[1].text.split()[3]
 
     ''' ------------------------------- Baseball Specific Functions ---------------------------------- '''
-    def find_baseball_data(self, url):
-        # html = BeautifulSoup(requests.get(url).text, features = 'lxml')
-
-        # # parsing columns
-        # th_tags = html.find_all('th', attrs = {'scope':'col'})
-        # lst = [th.text for th in th_tags]
-        # joined = ' '.join(lst).split('Rk') # we can get Rk out of the cols since it acts as the index
-        # all_cols = [lisst.split() for lisst in joined][1:]
-
-        # pitching data hidden in comments for 'other' leagues (northwoods league for sure)
+    def find_baseball_data(self, url, teamyr = ''):
 
         if self.level.lower() == 'mlb':
-            # hit_cols = all_cols[0]
-            # pit_cols = all_cols[1]
-            # # parsing data 
-            # tables = html.find_all('table')
-            # tr = [table.find_all('tr') for table in tables]
-            hitting_data = pd.read_html(url)[0].dropna(how = 'all').fillna(0)
-            pitching_data = pd.read_html(url)[1].dropna(how = 'all').fillna(0)
+
+            if teamyr != '2022':
+                hitting_data = pd.read_html(url)[0].dropna(how = 'all').fillna(0)
+                pitching_data = pd.read_html(url)[1].dropna(how = 'all').fillna(0)
+            elif teamyr == '2022':
+                # have to change the index because of the schedule tables in the current season
+                hitting_data = pd.read_html(url)[-2].dropna(how = 'all').fillna(0)
+                pitching_data = pd.read_html(url)[-1].dropna(how = 'all').fillna(0)
 
             hitting_data = hitting_data[hitting_data['Name'] != 'Name']
             pitching_data = pitching_data[pitching_data['Name'] != 'Name']
@@ -85,9 +79,7 @@ class ScrapeSR():
             soup = BeautifulSoup(requests.get(url).text,'lxml')
             pitching_data = pd.read_html([x for x in soup.find_all(string=lambda text: isinstance(text, Comment)) if 'id="div_team_pitching"' in x][0])[0]
             pitching_data['Name'] = pitching_data['Name'].str.replace('*', '').str.replace('#', '')
-
         # in the future we should include statcast data and probs if the years are 2015 or later
-
         return hitting_data, pitching_data, hitting_data.columns, pitching_data.columns
 
     # sport specific functions
@@ -98,7 +90,7 @@ class ScrapeSR():
             league_link = default_url + self.find_link(default_url + '/register/', self.league)[0]
 
             ''' need to make a new find link function for 2022 where we test every link until it matches the link text using sewp info '''
-            if self.team1yr == '2022' and self.level.lower() == 'other':
+            if self.team1yr == '2022':
 
                 yr_link1 = self.find_link(league_link, self.team1yr)[2]
                 team_links = self.find_link(default_url + yr_link1, self.team1, second_check= True)
@@ -109,10 +101,11 @@ class ScrapeSR():
                     yr, name, num_teams = self.sewp_info(html)
                     if name == self.team1:
                         the_link.append(link)
+                        break
                 hit1, pit1, hit_cols, pit_cols = self.find_baseball_data(the_link[0])
 
 
-            if self.team2yr == '2022' and self.level.lower() == 'other':
+            if self.team2yr == '2022':
                 yr_link1 = self.find_link(league_link, self.team1yr)[2]
                 team_links = self.find_link(default_url + yr_link1, self.team1, second_check= True)
                 the_link = []
@@ -122,8 +115,18 @@ class ScrapeSR():
                     yr, name, num_teams = self.sewp_info(html)
                     if name == self.team2:
                         the_link.append(link)
+                        break
                 hit2, pit2, hit_cols, pit_cols = self.find_baseball_data(the_link[0])
 
+            if self.team1yr != '2022':
+                yr_link1 = default_url + self.find_link(league_link, self.team1yr)[2]
+                team1_link = default_url + self.find_link(yr_link1, self.team1)[0]
+                hit1, pit1, hit_cols, pit_cols = self.find_baseball_data(team1_link)
+
+            if self.team2yr != '2022':
+                yr_link2 = default_url + self.find_link(league_link, self.team2yr)[2]
+                team2_link = default_url + self.find_link(yr_link2, self.team2)[0]
+                hit2, pit2, hit_cols, pit_cols = self.find_baseball_data(team2_link)
 
             if self.team1yr != '2022' and self.team2yr != '2022':
                 yr_link1 = default_url + self.find_link(league_link, self.team1yr)[2]
@@ -136,7 +139,8 @@ class ScrapeSR():
                 hit2, pit2, hit_cols, pit_cols = self.find_baseball_data(team2_link)
             return hit1, pit1, hit2, pit2, hit_cols, pit_cols
             
-        elif self.level.lower() == 'mlb':
+        # mlb branch
+        elif self.team1yr != '2022' and self.team2yr != '2022':
             # find year links for each team
             yr_link1 = default_url + self.find_link('https://www.baseball-reference.com/leagues/', self.team1yr)[0]
             yr_link2 = default_url + self.find_link('https://www.baseball-reference.com/leagues/', self.team2yr)[0]
@@ -149,4 +153,35 @@ class ScrapeSR():
             hit1, pit1, hit_cols, pit_cols = self.find_baseball_data(team1_link)
             hit2, pit2, hit_cols1, pit_cols1 = self.find_baseball_data(team2_link)
 
+            return hit1, pit1, hit2, pit2, hit_cols, pit_cols
+        
+        # 2022 mlb branch since the current season html is different
+        elif self.level.lower() == 'mlb' and self.team1yr == '2022' or self.team2yr == '2022':
+            def_url = 'https://www.baseball-reference.com/leagues/majors/2022.shtml'
+
+            # team1
+            if self.team1yr == '2022':
+                link1 = default_url + self.find_link(def_url, self.team1)[0]
+                hit1, pit1, hit_cols, pit_cols = self.find_baseball_data(link1, teamyr = self.team1yr)
+
+            elif self.team1yr != '2022':
+                # find year links for each team
+                yr_link1 = default_url + self.find_link('https://www.baseball-reference.com/leagues/', self.team1yr)[0]
+                # find team links for each team
+                team1_link = default_url + self.find_link(yr_link1, self.team1)[0]
+                # get probability data from each team link
+                hit1, pit1, hit_cols, pit_cols = self.find_baseball_data(team1_link)
+
+            if self.team2yr == '2022':
+                link2 = default_url + self.find_link(def_url, self.team2)[0]
+                hit2, pit2, hit_cols, pit_cols = self.find_baseball_data(link2, teamyr = self.team2yr)
+
+            elif self.team2yr != '2022':
+            # find year links for each team
+                yr_link2 = default_url + self.find_link('https://www.baseball-reference.com/leagues/', self.team2yr)[0]
+                # find team links for each team
+                team2_link = default_url + self.find_link(yr_link2, self.team2)[0]
+                # get probability data from each team link
+                hit2, pit2, hit_cols1, pit_cols1 = self.find_baseball_data(team2_link)
+            
             return hit1, pit1, hit2, pit2, hit_cols, pit_cols
