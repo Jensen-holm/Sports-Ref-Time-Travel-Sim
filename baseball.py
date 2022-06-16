@@ -11,6 +11,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
     - take starters out in the 7th and cycle through relievers
     - keep track of no hitters and cycles and things like that
     - total run dirrerential
+    - if the user says they want to do situational, dont let the lineup settings option pop up
 '''
 
 class Player():
@@ -410,9 +411,7 @@ class Baseball():
         pitcher.ER += runs_scored_on_play
         return base_state, runs_scored_on_play
 
-    def half_inning(self, lineup, current_batsman_index, pitcher, hitting_team_score):
-        base_state = [None,None,None]
-        outs = 0
+    def half_inning(self, lineup, current_batsman_index, pitcher, hitting_team_score, base_state = [None, None, None], outs = 0):
         index = current_batsman_index
         runs_scored = 0
 
@@ -483,67 +482,164 @@ class Baseball():
         pitcher.IP += 1
         return runs_scored, index
 
-    def game(self, team1, team2, lineup1, lineup2, pitcher1, pitcher2):
+    def game(self, team1, team2, lineup1, lineup2, pitcher1, pitcher2, situation = False):
         team1Score = 0
         team2Score = 0
         next_lineup1_list = [0]
         next_lineup2_list = [0]
 
-        for i in range(9):
-            next_in_line1 = next_lineup1_list[-1]
-            runs, new_lineup_index  = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score)
-            next_lineup1_list.append(new_lineup_index)
-            team1Score += runs
+        if siuation == False:
 
-            next_in_line2 = next_lineup2_list[-1]
-            runs, new_lineup_index = self.half_inning(lineup2, next_in_line2, pitcher1, team2Score)
-            next_lineup2_list.append(new_lineup_index)
-            team2Score += runs
+            for i in range(9):
+                next_in_line1 = next_lineup1_list[-1]
+                runs, new_lineup_index  = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score)
+                next_lineup1_list.append(new_lineup_index)
+                team1Score += runs
 
-        # seems a little complicated, try later
-        # # extras
-        # if team1Score == team2Score:
-        #     while team1Score == team2Score:
-        #         runs = self.half_inning(team1Score)
-        #         team1Score += runs
+                next_in_line2 = next_lineup2_list[-1]
+                runs, new_lineup_index = self.half_inning(lineup2, next_in_line2, pitcher1, team2Score)
+                next_lineup2_list.append(new_lineup_index)
+                team2Score += runs
 
-        #         runs = self.half_inning(team2Score)
-        #         team2Score += runs
+            # seems a little complicated, try later
+            # # extras
+            # if team1Score == team2Score:
+            #     while team1Score == team2Score:
+            #         runs = self.half_inning(team1Score)
+            #         team1Score += runs
 
-        if team1Score > team2Score:
-            team1.wins += 1
-            print(f'\nTHE {team1.name} WIN!')
-            print(f'SCORE: {team1Score} to {team2Score}')
-            team2.losses += 1
-        elif team1Score < team2Score:
-            print(f'\nTHE {team2.name} WIN!')
-            print(f'SCORE: {team1Score} to {team2Score}')
-            team1.losses += 1
-            team2.wins += 1
-        # while we still do not have extra innings done yet
-        elif team1Score == team2Score:
-            print(f'\nTIE (working on extra innings)')
-            print(f'SCORE: {team1Score} to {team2Score}')
-            team1.draws += 1
-            team2.draws += 1
+            #         runs = self.half_inning(team2Score)
+            #         team2Score += runs
 
-        print(f'\n{team1.name} wins, losses, ties: {team1.wins} {team1.losses} {team1.draws}')
-        print(f'{team2.name} wins, losses, ties: {team2.wins} {team2.losses} {team2.draws}\n\n')
+            if team1Score > team2Score:
+                team1.wins += 1
+                print(f'\nTHE {team1.name} WIN!')
+                print(f'SCORE: {team1Score} to {team2Score}')
+                team2.losses += 1
+            elif team1Score < team2Score:
+                print(f'\nTHE {team2.name} WIN!')
+                print(f'SCORE: {team1Score} to {team2Score}')
+                team1.losses += 1
+                team2.wins += 1
+            # while we still do not have extra innings done yet
+            elif team1Score == team2Score:
+                print(f'\nTIE (working on extra innings)')
+                print(f'SCORE: {team1Score} to {team2Score}')
+                team1.draws += 1
+                team2.draws += 1
 
-    def situation(self):
+            print(f'\n{team1.name} wins, losses, ties: {team1.wins} {team1.losses} {team1.draws}')
+            print(f'{team2.name} wins, losses, ties: {team2.wins} {team2.losses} {team2.draws}\n\n')
 
-        team1Score = int(input(f'\n{self.TEAM1} SCORE: '))
-        team2score = int(input(f'{self.TEAM2} SCORE: '))
+        elif situation == True:
+            # home / away
+            print(team1.name)
+            print(team2.name)
+            team1 = input(f'SET HOME TEAM: ').title().strip()
+            team2 = input(f'SET AWAY TEAM: ').title().strip()
 
-        inning = int(input('INNING: '))
-        outs = int(input('OUTS: '))
+            team1Score = int(input(f'\n{self.TEAM1} SCORE: '))
+            team2score = int(input(f'{self.TEAM2} SCORE: '))
 
-        first = int(input('RUNNER ON FIRST? (1/0): '))
-        second = int(input('RUNNER ON SECOND? (1/0): '))
-        third = int(input('RUNNER ON THIRD? (1/0): '))
+            inning = int(input('INNING: ')
+            inning_state = input('Top / Bottom: ').strip().lower()
+            
+            outs = int(input('OUTS: '))
 
-        next_lineup1_list = [0]
-        next_lineup2_list = [0]
+            first = int(input('RUNNER ON FIRST? (1/0): '))
+            second = int(input('RUNNER ON SECOND? (1/0): '))
+            third = int(input('RUNNER ON THIRD? (1/0): ')
+
+ 
+            for player in team1.hitters:
+                if player.weird == False:
+                    print(player.Name)
+            print(f'\n -- SET LINEUP  FOR THE {team1.name}--\n(must enter 9 guys)')
+            lineup_names1 = []
+            for i in range(9):
+                lineup_names1.append(input(str(i + 1)))
+            print('\n')
+            lineup1 =[]
+            for name in lineup_names1:
+                for player in team1.hitters:
+                    if name == player.Name:
+                        lineup1.append(player)
+
+            # then set the other teams lineup
+            print(f'\n -- SET LINEUP  FOR THE {team2.name}--\n(must enter 9 guys)')
+            lineup_names2 = []
+            for i in range(9):
+                lineup_names2.append(input(str(i + 1)))
+            lineup2 = []
+            for name in lineup_names2:
+                for player in team2.hitters:
+                    if name == player.Name:
+                            ineup2.append(player)
+
+
+            next_up1 = input(f'Who is up next for the {team1.name}:').title().strip()
+            next_in_line1 = lineup1.index(next_up1)
+            next_up2 = input(f'Who is up next for the {team2.name}: ').title().strip()
+            next_in_line2 = lineup2.index(next_up2)
+
+            # now pitchers
+            for player in team1.pitchers:
+                if player.weird == False:
+                    print(player.Name)
+            print(f'\n -- SET {team1.name} PITCHER -- \n')
+            pitcher1 = [pitcher for pitcher in team1.pitchers if pitcher.Name == input('Pitcher').title().strip()]
+
+
+            for player in self.pitchers:
+                if player.weird == False:
+                    print(player.Name)
+            print(f'\n -- SET {team2.name} PITCHER --\n')
+            pitcher2 = [pitcher for pitcher in team2.pitchers if pitcher.Name == input('Pitcher: ').title().strip()]
+            print('\n')
+
+            # now set the situational base state
+            # right now the runners on base dont matter specifically who they are, in future we should incorperate speed
+            # hopefully the indexing works with the index check within half inning
+            input_base_state = [None, None, None]
+            if first == 1 or second == 1 or third == 1:
+                if first == 1:
+                    input_base_state[0] = lineup[next_up1 - 1]
+
+                if second == 1:
+                    input_base_state[1] = lineup[next_up1 - 2]
+
+                if third == 1:
+                    input_base_state[2] = lineup[next_up1 - 3]
+
+            # first determine how likley it is to score runs in this situation for team1
+            for i in range(9 - inning):
+
+                next_in_line1 = next_lineup1_list[-1]
+                runs, new_lineup_index = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score, outs = outs, base_state = input_base_state)
+
+            # then determine how likley it is to win in this situation (currently excluding extra innings)
+            for i in range(9 - inning):
+
+                next_in_line1 = next_lineup1_list[-1]
+                runs, new_lineup_index = self.half_inning()
+
+
+
+
+    # def situation(self, team1, team2, lineup1, lineup2, pitcher1, pitcher2):
+
+        # team1Score = int(input(f'\n{self.TEAM1} SCORE: '))
+        # team2score = int(input(f'{self.TEAM2} SCORE: '))
+
+        # inning = int(input('INNING: '))
+        # outs = int(input('OUTS: '))
+
+        # first = int(input('RUNNER ON FIRST? (1/0): '))
+        # second = int(input('RUNNER ON SECOND? (1/0): '))
+        # third = int(input('RUNNER ON THIRD? (1/0): '))
+
+        # next_lineup1_list = [0]
+        # next_lineup2_list = [0]
 
         # for i in range(9):
         #     next_in_line1 = next_lineup1_list[-1]
@@ -557,7 +653,7 @@ class Baseball():
             # team2Score += runs
 
 
-        return
+        # return
     
     ''' -------------------------- Summary Functions -----------------------------'''
 
