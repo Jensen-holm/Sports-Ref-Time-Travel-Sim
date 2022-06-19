@@ -11,7 +11,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
     - take starters out in the 7th and cycle through relievers
     - keep track of no hitters and cycles and things like that
     - total run dirrerential
-    - if the user says they want to do situational, dont let the lineup settings option pop up
+    - situational
 '''
 
 class Player():
@@ -61,7 +61,8 @@ class Player():
             self.SLG = (self.singles + (self.doubles * 2) + (self.triples * 3) + (self.HR * 4)) / self.AB
             self.OPS = self.OBP + self.SLG
             self.BA = self.H / self.AB
-            print(f'{self.Name} PA: {self.PA}, RBI: {self.RBI}, HR: {self.HR}, AVG: {self.BA:.3f}, OBP: {self.OBP:.3f}, SLG%: {self.SLG:.3f}, BB: {self.BB}, K: {self.K}')
+            self.OPS = self.OBP + self.SLG
+            print(f'{self.Name} PA: {self.PA}, RBI: {self.RBI}, HR: {self.HR}, AVG: {self.BA:.3f}, OPS: {self.OPS:.3f}, BB: {self.BB}, K: {self.K}')
         elif self.hitter == False:
             # not alot of these are actually incremented yet
             self.WHIP = (self.BB + self.H) / self.IP
@@ -216,9 +217,9 @@ class Baseball():
         self.TEAM1 = input('\nENTER TEAM 1 (ex: 1899 Cincinnati Reds): ').title().strip()
         self.TEAM2 = input('ENTER TEAM 2 (ex: 1927 New York Yankees): ').title().strip()
 
-        self.SITUATION = input('\nSITUATION ANALYSIS? (y/n): ').strip().lower()
-        if self.SITUATION == 'y':
-            self.situation()
+        # self.SITUATION = input('\nSITUATION ANALYSIS? (y/n): ').strip().lower()
+        # if self.SITUATION == 'y':
+        #     self.situation()
 
         self.lineup_settings = input('\nLINEUP SETTINGS (manual/auto): ').strip().lower()
 
@@ -250,8 +251,8 @@ class Baseball():
                 t1i += 1
                 t2i += 1
                 games += 1
-                plt.scatter(games, Team1.wins, marker = 'o', c = Team1.color, alpha = self.num_sims / (self.num_sims * 4))
-                plt.scatter(games, Team2.wins, marker = 'o', c = Team2.color, alpha = self.num_sims / (self.num_sims * 4))
+                plt.scatter(games, Team1.wins, marker = 'o', c = Team1.color, alpha = .25)
+                plt.scatter(games, Team2.wins, marker = 'o', c = Team2.color, alpha = .25)
         t2i = 0
         t1i = 0
         for i in range(self.num_sims // 2):
@@ -263,8 +264,8 @@ class Baseball():
             t1i += 1
             t2i += 1
             games += 1
-            plt.scatter(games, Team1.wins, marker = 'o', c = Team1.color, alpha = self.num_sims / (self.num_sims * 4))
-            plt.scatter(games, Team2.wins, marker = 'o', c = Team2.color, alpha = self.num_sims / (self.num_sims * 4))
+            plt.scatter(games, Team1.wins, marker = 'o', c = Team1.color, alpha = .25)
+            plt.scatter(games, Team2.wins, marker = 'o', c = Team2.color, alpha = .25)
 
         self.summary(Team1, Team2)
 
@@ -411,9 +412,14 @@ class Baseball():
         pitcher.ER += runs_scored_on_play
         return base_state, runs_scored_on_play
 
-    def half_inning(self, lineup, current_batsman_index, pitcher, hitting_team_score, base_state = [None, None, None], outs = 0):
+    def half_inning(self, lineup, current_batsman_index, pitcher, hitting_team_score):
         index = current_batsman_index
         runs_scored = 0
+        # base_state = base_state
+        # base_stase = self.clear_bases(base_state)
+        base_state = [None, None, None]
+        outs = 0
+        results = []
 
         if current_batsman_index >= len(lineup):
             index = 0
@@ -427,11 +433,13 @@ class Baseball():
             if result == 'IPO':
                 lineup[index].IPO += 1
                 index += 1
+                results.append(result)
                 outs += 1
             elif result == 'K':
                 lineup[index].K += 1
                 pitcher.K += 1
                 index += 1
+                results.append('K')
                 outs += 1
 
             # then if it was something else
@@ -439,11 +447,13 @@ class Baseball():
                 base_state, scored = self.advance_bases(base_state, result, lineup[index], pitcher)
                 runs_scored += scored
                 pitcher.HBP += 1
+                results.append(result)
                 lineup[index].HBP += 1
                 index += 1
             elif result == 'BB':
                 base_state, scored = self.advance_bases(base_state, result, lineup[index], pitcher)
                 runs_scored += scored
+                results.append(result)
                 pitcher.BB += 1
                 lineup[index].BB += 1
                 index += 1
@@ -455,24 +465,28 @@ class Baseball():
                 if hit_type == '1B':
                     base_state, scored = self.advance_bases(base_state, hit_type, lineup[index], pitcher)
                     runs_scored += scored
+                    results.append(hit_type)
                     lineup[index].singles += 1
                     pitcher.singles += 1
                     index += 1
                 elif hit_type == '2B':
                     base_state, scored = self.advance_bases(base_state, hit_type, lineup[index], pitcher)
                     runs_scored += scored
+                    results.append(hit_type)
                     lineup[index].doubles += 1
                     pitcher.doubles += 1
                     index += 1
                 elif hit_type == '3B':
                     base_state, scored = self.advance_bases(base_state, hit_type, lineup[index], pitcher)
                     runs_scored += scored
+                    results.append(hit_type)
                     lineup[index].triples += 1
                     pitcher.triples += 1
                     index += 1
                 elif hit_type == 'HR':
                     base_state, scored = self.advance_bases(base_state, hit_type, lineup[index], pitcher)
                     runs_scored += scored
+                    results.append(hit_type)
                     lineup[index].HR += 1
                     pitcher.HR += 1
                     index += 1
@@ -480,27 +494,31 @@ class Baseball():
             if index >= len(lineup):
                 index = 0
         pitcher.IP += 1
-        return runs_scored, index
+        return runs_scored, index, results
 
     def game(self, team1, team2, lineup1, lineup2, pitcher1, pitcher2, situation = False):
         team1Score = 0
         team2Score = 0
         next_lineup1_list = [0]
         next_lineup2_list = [0]
+        results = []
 
-        if siuation == False:
+        if situation == False:
 
             for i in range(9):
                 next_in_line1 = next_lineup1_list[-1]
-                runs, new_lineup_index  = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score)
+                runs, new_lineup_index, half_inning_sequence  = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score)
                 next_lineup1_list.append(new_lineup_index)
+                results.append(half_inning_sequence)
                 team1Score += runs
 
                 next_in_line2 = next_lineup2_list[-1]
-                runs, new_lineup_index = self.half_inning(lineup2, next_in_line2, pitcher1, team2Score)
+                runs, new_lineup_index, half_inning_sequence = self.half_inning(lineup2, next_in_line2, pitcher1, team2Score)
                 next_lineup2_list.append(new_lineup_index)
+                results.append(half_inning_sequence)
                 team2Score += runs
 
+            ''' check the results list so we can track sequences and look for things like shutouts, 3k innings, back 2 back homers '''
             # seems a little complicated, try later
             # # extras
             # if team1Score == team2Score:
@@ -531,129 +549,6 @@ class Baseball():
             print(f'\n{team1.name} wins, losses, ties: {team1.wins} {team1.losses} {team1.draws}')
             print(f'{team2.name} wins, losses, ties: {team2.wins} {team2.losses} {team2.draws}\n\n')
 
-        elif situation == True:
-            # home / away
-            print(team1.name)
-            print(team2.name)
-            team1 = input(f'SET HOME TEAM: ').title().strip()
-            team2 = input(f'SET AWAY TEAM: ').title().strip()
-
-            team1Score = int(input(f'\n{self.TEAM1} SCORE: '))
-            team2score = int(input(f'{self.TEAM2} SCORE: '))
-
-            inning = int(input('INNING: ')
-            inning_state = input('Top / Bottom: ').strip().lower()
-            
-            outs = int(input('OUTS: '))
-
-            first = int(input('RUNNER ON FIRST? (1/0): '))
-            second = int(input('RUNNER ON SECOND? (1/0): '))
-            third = int(input('RUNNER ON THIRD? (1/0): ')
-
- 
-            for player in team1.hitters:
-                if player.weird == False:
-                    print(player.Name)
-            print(f'\n -- SET LINEUP  FOR THE {team1.name}--\n(must enter 9 guys)')
-            lineup_names1 = []
-            for i in range(9):
-                lineup_names1.append(input(str(i + 1)))
-            print('\n')
-            lineup1 =[]
-            for name in lineup_names1:
-                for player in team1.hitters:
-                    if name == player.Name:
-                        lineup1.append(player)
-
-            # then set the other teams lineup
-            print(f'\n -- SET LINEUP  FOR THE {team2.name}--\n(must enter 9 guys)')
-            lineup_names2 = []
-            for i in range(9):
-                lineup_names2.append(input(str(i + 1)))
-            lineup2 = []
-            for name in lineup_names2:
-                for player in team2.hitters:
-                    if name == player.Name:
-                            ineup2.append(player)
-
-
-            next_up1 = input(f'Who is up next for the {team1.name}:').title().strip()
-            next_in_line1 = lineup1.index(next_up1)
-            next_up2 = input(f'Who is up next for the {team2.name}: ').title().strip()
-            next_in_line2 = lineup2.index(next_up2)
-
-            # now pitchers
-            for player in team1.pitchers:
-                if player.weird == False:
-                    print(player.Name)
-            print(f'\n -- SET {team1.name} PITCHER -- \n')
-            pitcher1 = [pitcher for pitcher in team1.pitchers if pitcher.Name == input('Pitcher').title().strip()]
-
-
-            for player in self.pitchers:
-                if player.weird == False:
-                    print(player.Name)
-            print(f'\n -- SET {team2.name} PITCHER --\n')
-            pitcher2 = [pitcher for pitcher in team2.pitchers if pitcher.Name == input('Pitcher: ').title().strip()]
-            print('\n')
-
-            # now set the situational base state
-            # right now the runners on base dont matter specifically who they are, in future we should incorperate speed
-            # hopefully the indexing works with the index check within half inning
-            input_base_state = [None, None, None]
-            if first == 1 or second == 1 or third == 1:
-                if first == 1:
-                    input_base_state[0] = lineup[next_up1 - 1]
-
-                if second == 1:
-                    input_base_state[1] = lineup[next_up1 - 2]
-
-                if third == 1:
-                    input_base_state[2] = lineup[next_up1 - 3]
-
-            # first determine how likley it is to score runs in this situation for team1
-            for i in range(9 - inning):
-
-                next_in_line1 = next_lineup1_list[-1]
-                runs, new_lineup_index = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score, outs = outs, base_state = input_base_state)
-
-            # then determine how likley it is to win in this situation (currently excluding extra innings)
-            for i in range(9 - inning):
-
-                next_in_line1 = next_lineup1_list[-1]
-                runs, new_lineup_index = self.half_inning()
-
-
-
-
-    # def situation(self, team1, team2, lineup1, lineup2, pitcher1, pitcher2):
-
-        # team1Score = int(input(f'\n{self.TEAM1} SCORE: '))
-        # team2score = int(input(f'{self.TEAM2} SCORE: '))
-
-        # inning = int(input('INNING: '))
-        # outs = int(input('OUTS: '))
-
-        # first = int(input('RUNNER ON FIRST? (1/0): '))
-        # second = int(input('RUNNER ON SECOND? (1/0): '))
-        # third = int(input('RUNNER ON THIRD? (1/0): '))
-
-        # next_lineup1_list = [0]
-        # next_lineup2_list = [0]
-
-        # for i in range(9):
-        #     next_in_line1 = next_lineup1_list[-1]
-        #     runs, new_lineup_index  = self.half_inning(lineup1, next_in_line1, pitcher2, team1Score)
-        #     next_lineup1_list.append(new_lineup_index)
-        #     team1Score += runs
-
-        #     next_in_line2 = next_lineup2_list[-1]
-        #     runs, new_lineup_index = self.half_inning(lineup2, next_in_line2, pitcher1, team2Score)
-        #     next_lineup2_list.append(new_lineup_index)
-            # team2Score += runs
-
-
-        # return
     
     ''' -------------------------- Summary Functions -----------------------------'''
 
