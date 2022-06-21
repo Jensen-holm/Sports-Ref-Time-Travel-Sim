@@ -1,6 +1,6 @@
 # Sports-Ref-Time-Travel-Sim
 
-DATA COURTESY OF SPORTS-REFERENCE
+(all data used is from the sports reference webpage. they are amazing)
 
 SIMULATOR:
 
