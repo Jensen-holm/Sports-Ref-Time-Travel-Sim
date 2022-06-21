@@ -12,6 +12,7 @@ DISCLAIMERS:
 * The automatic lineup function sorts all hitters by total bases and uses the top 9 for the lineup 
 * The automatic rotation funciton sorts all starting pitchers by innings pitched and uses the top 10 to hopefully include a couple relievers
 * working on incorperating righty / lefty, home / away splits
+* Currently only works on Japanese league teams, the MLB, and summer baseball leagues (working on minors and college)
 
 LINEUP OPTIMIZATION:
 
