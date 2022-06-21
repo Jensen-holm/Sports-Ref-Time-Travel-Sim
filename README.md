@@ -25,3 +25,5 @@ The goal with this function of the sumulator is to be able to simulate as many g
 # Current Stage
 
 I am currently finished with the principles of the baseball simulator, although later on I would like to work in stolen bases, and reaching on error probability into it. For now I am working on finishing up the lineup optimizer so that for the MLB it will use righty lefty splits, to more accuratley spit out the best lineup possible. This will be an MLB only feature as that data is not as easily availabe for other leagues. The righty lefty splits should be in the simulator as well and not just the lineup optimizer so that will be cool. Then I will crank out the situational analysis option.
+
+Once I finish baseball and do everything I have been thinking of, I would like to move on to doing other sports that are on Sports-Reference like football, basketball, futbol, college football and basketball, and hockey.
