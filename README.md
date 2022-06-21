@@ -19,6 +19,8 @@ The lineup optimizer function allows you to try every possible variation of a st
 
 SITUATIONAL ANALYSIS:
 
+The goal with this function of the sumulator is to be able to simulate as many games as you want, all starting in a certain situation and seeing what the most likley results are. Another goal of it is to be able to simulate an equal amount of games with different pitchers and see which pitcher is most likley to get you out of a jam.
+
 
 # Current Stage
 
