@@ -1,5 +1,7 @@
 # Sports-Ref-Time-Travel-Sim
 
+DATA COURTESY OF SPORTS-REFERENCE
+
 SIMULATOR:
 
 Who was more dominant, the 1975 Cincinnati Reds or the 1927 Yankees? Debates like this can now be settled through simulation analysis. The simulator is based on plate appearance probabilities, you can either strikeout, walk, get a hit, or hit the ball in play but get out (in play out). When you enter in your two teams into the program, the web-crawler searches baseball reference for those two teams. Once it is able to get the data from those team pages, I convert the data into probabilities that add up to one for each player, on a plate appearance basis. Then when it's time to face off, in the plate apearance function for example, the probability of the hitter striking out is the probability of the pitcher striking someone out, plus the probability of the hitter striking out. This is the same for all events, and it adds up to 2, so if the hitter rarely strikes out (say 6% of the time) but the pitcher is a strikout pitcher (say 30% K rate), the probability of a strikout in this plate appearance is (.36 / 2) which is 18% for example. 
