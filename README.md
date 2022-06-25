@@ -17,6 +17,7 @@ DISCLAIMERS:
 * The automatic rotation funciton sorts all starting pitchers by innings pitched and uses the top 10 to hopefully include a couple relievers
 * working on incorperating righty / lefty, home / away splits
 * Currently only works on Japanese league teams, the MLB, and summer baseball leagues (working on minors and college)
+* Results of a plate appearance are based on overall season numbers, I am currently working on it to incorperate righty lefty splits and potentially other split statistics as well to have more 'authentic' probabilities for each plate appearance.
 
 LINEUP OPTIMIZATION:
 
@@ -26,9 +27,8 @@ SITUATIONAL ANALYSIS:
 
 The goal with this function of the sumulator is to be able to simulate as many games as you want, all starting in a certain situation and seeing what the most likley results are. Another goal of it is to be able to simulate an equal amount of games with different pitchers and see which pitcher is most likley to get you out of a jam.
 
-
 # Current Stage
 
-I am currently finished with the principles of the baseball simulator, although later on I would like to work in stolen bases, and reaching on error probability into it. For now I am working on finishing up the lineup optimizer so that for the MLB it will use righty lefty splits, to more accuratley spit out the best lineup possible. This will be an MLB only feature as that data is not as easily availabe for other leagues. The righty lefty splits should be in the simulator as well and not just the lineup optimizer so that will be cool. Then I will crank out the situational analysis option.
+The basic simulator is complete, it simulates as many games as you would like between two teams. but currently the stats that the probabilities are calculated off of a players total or current season statistics. I believe the simulator would be better if I were to base the probabilities off of split statistics, like righty/lefty, and home/away, anything you could think of to make it just that much more like real baseball. So that is what I am currently working on. However most of those features will only be availabe if you are doing an MLB simulation due to lack of data on other leagues.
 
 Once I finish baseball and do everything I have been thinking of, I would like to move on to doing other sports that are on Sports-Reference like football, basketball, futbol, college football and basketball, and hockey.
