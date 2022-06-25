@@ -1,11 +1,7 @@
-''' Scrape Sports Reference with the goal of simulation in mind '''
+from nwl_righty_lefty import splits
 from bs4 import BeautifulSoup, Comment
 import pandas as pd
 import requests
-
-''' working on find link function for 2022 '''
-
-''' think the issue is that the sewp info function is meant for league links '''
 
 class ScrapeSR():
 
@@ -18,11 +14,14 @@ class ScrapeSR():
         self.team1yr = team1[:5].strip()
         self.team2yr = team2[:5].strip()
         self.level = level
+        self.hit1, self.pit1, self.hit2, self.pit2, self.hit_cols, self.pit_cols = self.baseball()
 
-        if self.sport == 'Baseball':
-            self.hit1, self.pit1, self.hit2, self.pit2, self.hit_cols, self.pit_cols = self.baseball()
-        elif self.sport.lower() != 'baseball':
-            print('\n\nSCRAPER ONLY CAPEABLE OF BASEBALL AT THE MOMENT.')
+        ''' go to northwoods league page for split stats if self.league == 'northwoods league' '''
+
+        # if self.league.strip().lower() == 'northwoods league':
+        #     nwl_scraper = splits()
+        #     self.team1 = nwl_scraper.team1()
+        #     self.team2 = nwl_scraper.team2()
 
     ''' ----------------------------------- Scraping Functions --------------------------------------- '''
     def find_link(self, url, link_text, second_check = False):
@@ -85,11 +84,12 @@ class ScrapeSR():
     # sport specific functions
     def baseball(self):
         default_url = 'https://baseball-reference.com'
+        def_url_other = 'https://www.baseball-reference.com/register/league.cgi'
 
         if self.level.lower() == 'other':
-            league_link = default_url + self.find_link(default_url + '/register/', self.league)[0]
 
-            ''' need to make a new find link function for 2022 where we test every link until it matches the link text using sewp info '''
+            league_link = default_url + self.find_link(def_url_other, self.league)[0]
+
             if self.team1yr == '2022':
 
                 yr_link1 = self.find_link(league_link, self.team1yr)[2]
