@@ -12,7 +12,7 @@ DISCLAIMERS:
 
 * If there is a runner on 2nd base and the batter hits a single, the runner will always score (working on base running probability)
 * If there is a runner on 1st and the batter hits into an in play out, there is no double play (working on double play probability)
-* The starting pitcher always goes all 9 innings in each game (working on cycling through relievers after the 6th inning of games)
+* The starting pitcher always goes all 9 innings in each game (working on cycling through relievers after the 6th inning or so of games)
 * The automatic lineup function sorts all hitters by total bases and uses the top 9 for the lineup 
 * The automatic rotation funciton sorts all starting pitchers by innings pitched and uses the top 10 to hopefully include a couple relievers
 * working on incorperating righty / lefty, home / away splits
@@ -20,7 +20,7 @@ DISCLAIMERS:
 
 LINEUP OPTIMIZATION:
 
-The lineup optimizer function allows you to try every possible variation of a starting 9 against a specific pitcher and will spit out the top 5 lineups sorted by runs scored per game off of that pitcher.
+The lineup optimizer function allows you to try every possible variation of a starting 9 against a specific pitcher and will spit out the top 10 lineups sorted by runs scored per game off of that pitcher (this function ususally takes a while, I would reccommend 100 sims per lineup).
 
 SITUATIONAL ANALYSIS:
 
