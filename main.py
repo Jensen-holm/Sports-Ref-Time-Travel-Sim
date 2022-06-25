@@ -1,4 +1,3 @@
-# import all of the simulators
 from baseball import Baseball
 
 # print something cool
