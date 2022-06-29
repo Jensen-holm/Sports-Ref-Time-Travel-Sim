@@ -27,9 +27,9 @@ def OptLineup(team_roster, opposing_pitcher, half_inning_func):
             lineup_scores.append([team1Score, combo])
 
 
-        best_lineup = sorted(lineup_scores, key = lambda x: x[0])
+        best_lineup = sorted(lineup_scores, key = lambda x: x[0], reverse = True)
         print('\n - - TOP 10 LINEUPS - -')
-        for i in range(-1, -11, -1):
+        for i in range(10):
             for player in best_lineup[i][1]:
                 player.rate_stats()
             print(f'\nScored {best_lineup[i][0] / num_sims:.2f} runs per game in {num_sims} games versus {opposing_pitcher.Name}\n\n')
